@@ -2,12 +2,66 @@ version: 2
 
 models:
   - name: dim_users
+    description: "Kund:innen-Dimension mit Bestell-Summary aus abgeschlossenen Bestellungen."
     columns:
       - name: user_id
-        data_tests:
+        description: "Primärschlüssel der Kund:innen-Dimension."
+        tests:
           - unique
           - not_null
       - name: email
-        data_tests:
-        - not_null
-        
+        description: "E-Mail-Adresse der Kund:in (fachliche Pflicht)."
+        tests:
+          - not_null
+
+  - name: dim_products
+    description: "Produkt-Dimension mit Stammdaten und Verkaufs-Kennzahlen über die gesamte Historie."
+    columns:
+      - name: product_id
+        description: "Primärschlüssel der Produkt-Dimension."
+        tests:
+          - unique
+          - not_null
+      - name: category
+        description: "Produktkategorie (z. B. 'Accessories', 'Tops & Tees')."
+        tests:
+          - not_null
+      - name: lifetime_units_sold
+        description: "Anzahl verkaufter Einheiten über alle Bestellpositionen."
+
+  - name: fct_orders
+    description: "Eine Zeile pro Bestellung mit Revenue-, Profit- und Delivery-Kennzahlen."
+    columns:
+      - name: order_id
+        description: "Primärschlüssel der Bestellung."
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign Key auf `dim_users`."
+        tests:
+          - not_null
+      - name: status
+      - name: ordered_at
+        description: "Zeitpunkt der Bestellung (Timestamp)."
+        tests:
+          - not_null
+
+
+  - name: fct_order_items
+    description: "Eine Zeile pro Bestellposition, angereichert um Produkt-Infos (aus `int_order_items_enriched`)."
+    columns:
+      - name: order_item_id
+        description: "Primärschlüssel der Bestellposition."
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: "Foreign Key auf `fct_orders`."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Foreign Key auf `dim_products`."
+        tests:
+          - not_null
+      - name: sale_price
