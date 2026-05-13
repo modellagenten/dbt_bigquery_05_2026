@@ -13,6 +13,18 @@ models:
         description: "E-Mail-Adresse der Kund:in (fachliche Pflicht)."
         tests:
           - not_null
+      - name: lifetime_orders
+        description: "Anzahl abgeschlossener Bestellungen (`status = 'Complete'`)."
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: lifetime_items
+        description: "Summe aller bestellten Artikel über abgeschlossene Bestellungen."
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
 
   - name: dim_products
     description: "Produkt-Dimension mit Stammdaten und Verkaufs-Kennzahlen über die gesamte Historie."
@@ -28,6 +40,12 @@ models:
           - not_null
       - name: lifetime_units_sold
         description: "Anzahl verkaufter Einheiten über alle Bestellpositionen."
+      - name: lifetime_revenue
+        description: "{{ doc('revenue_definition') }}"
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
 
   - name: fct_orders
     description: "Eine Zeile pro Bestellung mit Revenue-, Profit- und Delivery-Kennzahlen."
@@ -41,12 +59,29 @@ models:
         description: "Foreign Key auf `dim_users`."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_id
       - name: status
+        description: "{{ doc('order_status') }}"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Complete', 'Processing', 'Shipped', 'Cancelled', 'Returned']
       - name: ordered_at
         description: "Zeitpunkt der Bestellung (Timestamp)."
         tests:
           - not_null
-
+          - not_future
+      - name: revenue
+        description: "{{ doc('revenue_definition') }}"
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments: 
+                expression: ">= 0"
+      - name: days_to_delivery
+        description: "Anzahl Tage zwischen Bestell- und Liefer-Zeitpunkt. NULL, solange nicht geliefert."
 
   - name: fct_order_items
     description: "Eine Zeile pro Bestellposition, angereichert um Produkt-Infos (aus `int_order_items_enriched`)."
@@ -60,8 +95,28 @@ models:
         description: "Foreign Key auf `fct_orders`."
         tests:
           - not_null
+          - relationships:
+              arguments: 
+                to: ref('fct_orders')
+                field: order_id
       - name: product_id
         description: "Foreign Key auf `dim_products`."
         tests:
           - not_null
+          - relationships:
+              arguments: 
+                to: ref('dim_products')
+                field: product_id
       - name: sale_price
+        description: "{{ doc('revenue_definition') }}"
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments: 
+                expression: ">= 0"
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: 
+            combination_of_columns:
+              - order_id
+              - order_item_id
