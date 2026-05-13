@@ -18,7 +18,7 @@ select
     products.product_name,
     products.category,
     products.brand,
-    products.sale_price,
+    items.sale_price,
     products.cost,
     items.sale_price - products.cost as profit,
     items.ordered_at
